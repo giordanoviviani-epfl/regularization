@@ -1,2 +1,2 @@
 # regularization
-Pipelines and examples of the application of regularisation to regression problems
+Pipelines and examples of the application of regularization to regression problems

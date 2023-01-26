@@ -1,17 +1,20 @@
 import numpy as np
+from IPython.display import display
 import matplotlib.pyplot as plt
 from scipy.special import legendre
 import ipywidgets as widgets
+
 
 class PolyModel():
 
     def __init__(self):
         pass
+ 
 
-    
     def design_matrix(self, x, ncol):
         return np.hstack([legendre(n)(np.array(x)).reshape(-1, 1) for n in range(ncol)])
     
+
     def interactive(self, x, y, regularize=None, max_order=20, over_plot=None, _step=1):
 
         if regularize is None:
@@ -20,6 +23,8 @@ class PolyModel():
             log_lam = np.arange(-18, 3, 0.5)
         else:
             raise ValueError(f"Invalid regularizer: {regularize}")
+
+        assert len(x) == len(y), 'x and y have not the same dimensions'
 
         if over_plot is not None:
             x_test, y_test = over_plot
@@ -139,10 +144,10 @@ class PolyModel():
         plot = widgets.interactive_output( visualize_func, {"N": slider, "log_lam_idx": l_slider})
 
         # Display!
-        plt.display(plot)
-        plt.display(widgets.HBox([slider, s_text]))
+        display(plot)
+        display(widgets.HBox([slider, s_text]))
         if str(regularize).lower() != "none":
-            plt.display(widgets.HBox([l_slider, l_text]))
+            display(widgets.HBox([l_slider, l_text]))
 
 class FSModel(PolyModel):
 
@@ -150,15 +155,15 @@ class FSModel(PolyModel):
         columns = []
         for n in range(ncol):
             if n == 0:
-                columns.append(np.ones(x.__len__()).reshape(-1, 1))
+                columns.append(np.ones(len(x)).reshape(-1, 1))
             elif n%2 == 1:
                 columns.append(np.cos(2.*np.pi*x*(n//2 + 1)))
             elif n%2 == 0:
                 columns.append(np.sin(2.*np.pi*x*(n//2)))
             else:
-               ValueError(f"Invalid value for n: {n}")
+                ValueError(f"Invalid value for n: {n}")
 
-        return np.hstack(columns) 
+        return np.hstack(columns)
 
     def interactive(self, x, y, regularize=None, max_order=20, over_plot=None, _step=2):
         return super().interactive(x, y, regularize, max_order, over_plot, _step)
@@ -192,7 +197,7 @@ def L1(A, y, log_lam=5.0, maxiter=9999, eps=1e-15, tol=1e-8):
     ATy = A.T @ y
     w = np.ones_like(ATA[0])
     lam = 10 ** log_lam
-    for n in range(maxiter):
+    for _ in range(maxiter):
         absw = np.abs(w)
         if hasattr(lam, "__len__"):
             absw[absw < lam * eps] = lam[absw < lam * eps] * eps

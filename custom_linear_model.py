@@ -20,7 +20,7 @@ class PolyModel():
         if regularize is None:
             log_lam = [0]
         elif str(regularize).lower() == 'l1' or str(regularize).lower() == 'l2':
-            log_lam = np.arange(-18, 3, 0.5)
+            log_lam = np.arange(-18, 3, 0.1)
         else:
             raise ValueError(f"Invalid regularizer: {regularize}")
 
@@ -106,7 +106,13 @@ class PolyModel():
 
             ax["A"].set_xlabel("x", fontsize=28)
             ax["A"].set_ylabel("y(x)", fontsize=28)
-            ax["A"].set_xlim(-0.5, 0.5)
+            xmin = np.min(x_train)
+            xmax = np.max(x_train)
+            if plot_test_set:
+                xmin = min((xmin, np.min(x_test)))
+                xmax = max((xmax, np.max(x_test)))
+            xpad = 0.02 * (xmax - xmin)
+            ax["A"].set_xlim(xmin - xpad, xmax + xpad)
             ymin = np.min(y_train)
             ymax = np.max(y_train)
             if plot_test_set:
@@ -154,6 +160,7 @@ class PolyModel():
         if str(regularize).lower() != "none":
             display(widgets.HBox([l_slider, l_text]))
 
+
 class FSModel(PolyModel):
 
     def design_matrix(self, x, ncol):
@@ -162,9 +169,9 @@ class FSModel(PolyModel):
             if n == 0:
                 columns.append(np.ones(len(x)).reshape(-1, 1))
             elif n%2 == 1:
-                columns.append(np.cos(2.*np.pi*x*(n//2 + 1)))
+                columns.append(np.cos(2.*np.pi*x*(n//2 + 1)/(n//2 + 1)).reshape(-1, 1))
             elif n%2 == 0:
-                columns.append(np.sin(2.*np.pi*x*(n//2)))
+                columns.append(np.sin(2.*np.pi*x*(n//2)/(n//2)).reshape(-1, 1))
             else:
                 ValueError(f"Invalid value for n: {n}")
 

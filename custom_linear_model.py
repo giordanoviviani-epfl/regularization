@@ -15,7 +15,7 @@ class PolyModel():
         return np.hstack([legendre(n)(np.array(x)).reshape(-1, 1) for n in range(ncol)])
     
 
-    def interactive(self, x, y, regularize=None, max_order=20, over_plot=None, _step=1):
+    def interactive(self, x_train, y_train, regularize=None, max_order=20, over_plot=None, _step=1):
 
         if regularize is None:
             log_lam = [0]
@@ -24,11 +24,14 @@ class PolyModel():
         else:
             raise ValueError(f"Invalid regularizer: {regularize}")
 
-        assert len(x) == len(y), 'x and y have not the same dimensions'
+        assert len(x_train) == len(y_train), 'x and y have not the same dimensions'
 
         if over_plot is not None:
             x_test, y_test = over_plot
             plot_test_set = True
+        else:
+            x_test, y_test = np.empty(0), np.empty(0)
+            plot_test_set = False
 
         slider = widgets.IntSlider(
                     value=0,
@@ -40,7 +43,7 @@ class PolyModel():
                     orientation='horizontal',
                     readout=False,
                     layout=widgets.Layout(width='90%'),
-                    description='Number of orders:'
+                    description='# orders:'
                     )
 
         s_text = widgets.Label(value="{:.2f}".format(0))
@@ -61,30 +64,32 @@ class PolyModel():
         l_text = widgets.Label(value="{:.2f}".format(log_lam[0]))
 
         def visualize_func(N=0, log_lam_idx=0):
-
+            nonlocal x_train, y_train, regularize, x_test, y_test
+            
             s_text.value = "{:d}".format(N)
             l_text.value = "{:.2f}".format(log_lam[log_lam_idx])
 
             # Compute the weights
-            A_train = self.design_matrix(x, N + 1)
+            A_train = self.design_matrix(x_train, N + 1)
             if str(regularize).lower() == "none":
-                w = lstsq(A_train, y)
+                w = lstsq(A_train, y_train)
             elif str(regularize).lower() == "l1":
-                w = L1(A_train, y, log_lam[log_lam_idx])
+                w = L1(A_train, y_train, log_lam[log_lam_idx])
             elif str(regularize).lower() == "l2":
-                w = L2(A_train, y, log_lam[log_lam_idx])
+                w = L2(A_train, y_train, log_lam[log_lam_idx])
             else:
                 raise ValueError(f"Invalid regularizer: {regularize}")
             model_train = A_train.dot(w)
 
             # Compute the prediction
-            A_test = self.design_matrix(x_test, N + 1)
-            model_test = A_test.dot(w)
+            if plot_test_set:
+                A_test = self.design_matrix(x_test, N + 1)
+                model_test = A_test.dot(w)
 
             # Compute the model on a high res grid
             x_hires = np.linspace(
-                np.concatenate((x, x_test)).min(),
-                np.concatenate((x, x_test)).max(),
+                np.concatenate((x_train, x_test)).min(),
+                np.concatenate((x_train, x_test)).max(),
                 300,
             )
             A_hires = self.design_matrix(x_hires, N + 1)
@@ -102,8 +107,8 @@ class PolyModel():
             ax["A"].set_xlabel("x", fontsize=28)
             ax["A"].set_ylabel("y(x)", fontsize=28)
             ax["A"].set_xlim(-0.5, 0.5)
-            ymin = np.min(y)
-            ymax = np.max(y)
+            ymin = np.min(y_train)
+            ymax = np.max(y_train)
             if plot_test_set:
                 ymin = min((ymin, np.min(y_test)))
                 ymax = max((ymax, np.max(y_test)))
@@ -111,12 +116,12 @@ class PolyModel():
             ax["A"].set_ylim(ymin - ypad, ymax + ypad)
 
             # Plot the data
-            ax["A"].plot(x, y, "ko")
+            ax["A"].plot(x_train, y_train, "ko")
             if plot_test_set:
                 ax["A"].plot(x_test, y_test, "C1o")
 
             # Plot the model
-            x = np.concatenate((x, x_test, x_hires))
+            x = np.concatenate((x_train, x_test, x_hires))
             m = np.concatenate((model_train, model_test, model_hires))
             idx = np.argsort(x)
             x = x[idx]
@@ -124,7 +129,7 @@ class PolyModel():
             ax["A"].plot(x, m, "C0-")
 
             # Print the loss
-            loss_train = np.sum((y - model_train) ** 2) / len(y)
+            loss_train = np.sum((y_train - model_train) ** 2) / len(y_train)
             ax["B"].text( 0.1, 0.5, f"Train loss: {loss_train:.2e}", ha="left", fontsize=20)
 
             if plot_test_set:

@@ -169,9 +169,9 @@ class FSModel(PolyModel):
             if n == 0:
                 columns.append(np.ones(len(x)).reshape(-1, 1))
             elif n%2 == 1:
-                columns.append(np.cos(2.*np.pi*x*(n//2 + 1)/(n//2 + 1)).reshape(-1, 1))
+                columns.append((np.cos(2.*np.pi*x*(n//2 + 1))/(n//2 + 1)).reshape(-1, 1))
             elif n%2 == 0:
-                columns.append(np.sin(2.*np.pi*x*(n//2)/(n//2)).reshape(-1, 1))
+                columns.append((np.sin(2.*np.pi*x*(n//2))/(n//2)).reshape(-1, 1))
             else:
                 ValueError(f"Invalid value for n: {n}")
 
